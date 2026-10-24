@@ -1,0 +1,74 @@
+.page-container {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  min-height: 100vh;
+  width: 100%;
+  color: #e8e8e8;
+  font-family: "Microsoft YaHei", sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40rpx 20rpx;
+  box-sizing: border-box;
+}
+
+.title {
+  margin-bottom: 30rpx;
+  font-size: 44rpx;
+  letter-spacing: 8rpx;
+  color: #f0c040;
+  text-shadow: 0 4rpx 16rpx rgba(240,192,64,0.4);
+  font-weight: bold;
+}
+
+.panel {
+  background: rgba(255,255,255,0.06);
+  padding: 28rpx 48rpx;
+  border-radius: 20rpx;
+  margin-bottom: 36rpx;
+  display: flex;
+  align-items: center;
+  gap: 48rpx;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.status {
+  font-size: 36rpx;
+  font-weight: bold;
+}
+
+.text-gold {
+  color: #f0c040;
+}
+
+/* 按钮样式复用，把 px 换成了 rpx */
+.action-btn {
+  padding: 16rpx 36rpx;
+  border: none;
+  border-radius: 12rpx;
+  cursor: pointer;
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #fff;
+  transition: all 0.2s;
+}
+.action-btn:active {
+  transform: scale(0.95); /* 手机端点击效果 */
+}
+
+/* 棋盘外框 */
+.board-wrap {
+  position: relative;
+  padding: 60rpx;
+  background: linear-gradient(135deg, #d2a35c 0%, #b8860b 100%);
+  border-radius: 16rpx;
+  box-shadow: 0 24rpx 80rpx rgba(0,0,0,0.6);
+  margin-bottom: 36rpx;
+}
+
+.board-canvas {
+  width: 600rpx;
+  height: 600rpx;
+}

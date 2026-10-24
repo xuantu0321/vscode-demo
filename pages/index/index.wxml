@@ -1,0 +1,35 @@
+<view class="page-container">
+  <view class="title">五 子 棋</view>
+
+  <view class="panel">
+    <view class="status">
+      当前: <text class="text-gold">{{currentPlayerText}}</text>
+      <text wx:if="{{gameOverText}}" style="color: #e74c3c; margin-left: 20rpx;">{{gameOverText}}</text>
+    </view>
+    <button class="action-btn" style="background:#e74c3c;" bindtap="restart">重新开始</button>
+  </view>
+
+  <view class="board-wrap">
+    <canvas type="2d" id="myCanvas" class="board-canvas" bindtap="onCanvasTap"></canvas>
+  </view>
+
+  <!-- 控制面板 -->
+  <view class="panel" style="flex-direction: column; gap: 10rpx;">
+    <!-- 第一排：上一步、下一步 -->
+    <view style="display:flex; width:100%; justify-content:space-between; align-items:center;">
+      <button class="action-btn" style="background:#16a085; flex:1; margin-right:10rpx;" bindtap="prevStep">上一步</button>
+      <text style="color:#bbb; font-size:28rpx;">{{stepInfo}}</text>
+      <button class="action-btn" style="background:#d35400; flex:1; margin-left:10rpx;" bindtap="nextStep">下一步</button>
+    </view>
+    
+    <!-- 第二排：悔棋 -->
+    <button class="action-btn" style="background:#3498db; width:100%;" bindtap="undo">悔棋</button>
+  </view>
+    <!-- 导出、导入面板 -->
+  <view class="panel" style="flex-direction: column; gap: 10rpx; margin-top: 10rpx;">
+    <view style="display:flex; width:100%; gap: 20rpx;">
+      <button class="action-btn" style="background:#8e44ad; flex:1;" bindtap="exportMoveSeq">导出棋谱</button>
+      <button class="action-btn" style="background:#2980b9; flex:1;" bindtap="importMoveSeq">导入棋谱</button>
+    </view>
+  </view>
+</view>
