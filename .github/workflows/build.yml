@@ -1,0 +1,589 @@
+name: Build AutoClicker APK
+on: [push, workflow_dispatch]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Create Project Structure
+        run: |
+          mkdir -p app/src/main/java/com/example/autoclicker
+          mkdir -p app/src/main/res/layout
+          mkdir -p app/src/main/res/drawable
+          mkdir -p app/src/main/res/values
+          mkdir -p app/src/main/res/xml
+
+      - name: Create Root build.gradle
+        run: |
+          cat > build.gradle << 'EOF'
+          plugins {
+              id 'com.android.application' version '8.1.0' apply false
+              id 'org.jetbrains.kotlin.android' version '1.9.0' apply false
+          }
+          EOF
+
+      - name: Create settings.gradle
+        run: |
+          cat > settings.gradle << 'EOF'
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          rootProject.name = "AutoClicker"
+          include ':app'
+          EOF
+
+      - name: Create gradle.properties
+        run: |
+          cat > gradle.properties << 'EOF'
+          org.gradle.jvmargs=-Xmx4096m -Dfile.encoding=UTF-8
+          android.useAndroidX=true
+          kotlin.code.style=official
+          android.nonTransitiveRClass=true
+          EOF
+
+      - name: Create App build.gradle
+        run: |
+          cat > app/build.gradle << 'EOF'
+          plugins {
+              id 'com.android.application'
+              id 'org.jetbrains.kotlin.android'
+          }
+
+          android {
+              namespace 'com.example.autoclicker'
+              compileSdk 34
+
+              defaultConfig {
+                  applicationId "com.example.autoclicker"
+                  minSdk 24
+                  targetSdk 34
+                  versionCode 1
+                  versionName "1.0"
+              }
+
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                  }
+                  debug {
+                      minifyEnabled false
+                  }
+              }
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_1_8
+                  targetCompatibility JavaVersion.VERSION_1_8
+              }
+              kotlinOptions {
+                  jvmTarget = '1.8'
+              }
+          }
+
+          dependencies {
+              implementation 'androidx.core:core-ktx:1.12.0'
+              implementation 'androidx.appcompat:appcompat:1.6.1'
+              implementation 'com.google.android.material:material:1.11.0'
+              implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+          }
+          EOF
+
+      - name: Create ProGuard
+        run: |
+          cat > app/proguard-rules.pro << 'EOF'
+          # ProGuard rules
+          EOF
+
+      - name: Create local.properties
+        run: echo "sdk.dir=$ANDROID_HOME" > local.properties
+
+      - name: Create AndroidManifest
+        run: |
+          cat > app/src/main/AndroidManifest.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+              package="com.example.autoclicker">
+              <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+              <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+              <application
+                  android:allowBackup="true"
+                  android:icon="@drawable/circle_target"
+                  android:roundIcon="@drawable/circle_target"
+                  android:label="@string/app_name"
+                  android:theme="@style/Theme.AutoClicker">
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+                  <service
+                      android:name=".AutoClickService"
+                      android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+                      android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.accessibilityservice.AccessibilityService" />
+                      </intent-filter>
+                      <meta-data
+                          android:name="android.accessibilityservice"
+                          android:resource="@xml/accessibility_service_config" />
+                  </service>
+                  <service android:name=".FloatingService" />
+              </application>
+          </manifest>
+          EOF
+
+      - name: Create MainActivity
+        run: |
+          cat > app/src/main/java/com/example/autoclicker/MainActivity.kt << 'EOF'
+          package com.example.autoclicker
+
+          import android.content.Intent
+          import android.net.Uri
+          import android.os.Bundle
+          import android.provider.Settings
+          import android.widget.Button
+          import android.widget.Toast
+          import androidx.appcompat.app.AppCompatActivity
+
+          class MainActivity : AppCompatActivity() {
+              override fun onCreate(savedInstanceState: Bundle?) {
+                  super.onCreate(savedInstanceState)
+                  setContentView(R.layout.activity_main)
+
+                  findViewById<Button>(R.id.btnAccessibility).setOnClickListener {
+                      startActivity(Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                      Toast.makeText(this, "请找到「自动连点器」并开启辅助功能", Toast.LENGTH_LONG).show()
+                  }
+
+                  findViewById<Button>(R.id.btnFloat).setOnClickListener {
+                      if (!Settings.canDrawOverlays(this)) {
+                          startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                              Uri.parse("package:$packageName")))
+                          Toast.makeText(this, "请先授予悬浮窗权限", Toast.LENGTH_SHORT).show()
+                          return@setOnClickListener
+                      }
+                      startService(Intent(this, FloatingService::class.java))
+                      Toast.makeText(this, "悬浮窗已启动", Toast.LENGTH_SHORT).show()
+                  }
+
+                  findViewById<Button>(R.id.btnStop).setOnClickListener {
+                      stopService(Intent(this, FloatingService::class.java))
+                      AutoClickService.instance?.stopClicking()
+                      Toast.makeText(this, "已停止", Toast.LENGTH_SHORT).show()
+                  }
+              }
+          }
+          EOF
+
+      - name: Create AutoClickService
+        run: |
+          cat > app/src/main/java/com/example/autoclicker/AutoClickService.kt << 'EOF'
+          package com.example.autoclicker
+
+          import android.accessibilityservice.AccessibilityService
+          import android.accessibilityservice.GestureDescription
+          import android.graphics.Path
+          import android.util.Log
+          import android.view.accessibility.AccessibilityEvent
+
+          class AutoClickService : AccessibilityService() {
+              companion object {
+                  var instance: AutoClickService? = null
+                  var targetX: Float = 500f
+                  var targetY: Float = 500f
+                  var isRunning = false
+                  var intervalMs: Long = 500
+                  var clickCount: Int = 0
+                  var currentClicks = 0
+              }
+              private var clickThread: Thread? = null
+
+              override fun onServiceConnected() {
+                  super.onServiceConnected()
+                  instance = this
+                  Log.d("AutoClick", "辅助服务已连接")
+              }
+              override fun onAccessibilityEvent(event: AccessibilityEvent?) {}
+              override fun onInterrupt() {}
+
+              fun startClicking() {
+                  if (isRunning) return
+                  isRunning = true
+                  currentClicks = 0
+                  clickThread = Thread {
+                      while (isRunning) {
+                          if (clickCount > 0 && currentClicks >= clickCount) {
+                              isRunning = false
+                              break
+                          }
+                          performClick(targetX, targetY)
+                          currentClicks++
+                          try { Thread.sleep(intervalMs) } catch (e: InterruptedException) { break }
+                      }
+                  }
+                  clickThread?.start()
+              }
+
+              fun stopClicking() {
+                  isRunning = false
+                  clickThread?.interrupt()
+              }
+
+              private fun performClick(x: Float, y: Float) {
+                  val path = Path().apply { moveTo(x, y) }
+                  val builder = GestureDescription.Builder()
+                      .addStroke(GestureDescription.StrokeDescription(path, 0, 50))
+                  dispatchGesture(builder.build(), null, null)
+              }
+
+              override fun onDestroy() {
+                  super.onDestroy()
+                  instance = null
+                  isRunning = false
+              }
+          }
+          EOF
+
+      - name: Create FloatingService
+        run: |
+          cat > app/src/main/java/com/example/autoclicker/FloatingService.kt << 'EOF'
+          package com.example.autoclicker
+
+          import android.app.Service
+          import android.content.Intent
+          import android.graphics.PixelFormat
+          import android.os.Build
+          import android.os.IBinder
+          import android.view.Gravity
+          import android.view.LayoutInflater
+          import android.view.MotionEvent
+          import android.view.View
+          import android.view.WindowManager
+          import android.widget.Button
+          import android.widget.EditText
+          import android.widget.Toast
+
+          class FloatingService : Service() {
+              private lateinit var wm: WindowManager
+              private lateinit var targetView: View
+              private lateinit var controlView: View
+              private var targetX = 500f
+              private var targetY = 500f
+
+              override fun onBind(intent: Intent?): IBinder? = null
+
+              override fun onCreate() {
+                  super.onCreate()
+                  wm = getSystemService(WINDOW_SERVICE) as WindowManager
+
+                  val targetParams = WindowManager.LayoutParams(
+                      80, 80,
+                      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                          WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+                      else
+                          WindowManager.LayoutParams.TYPE_PHONE,
+                      WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+                      PixelFormat.TRANSLUCENT
+                  ).apply {
+                      gravity = Gravity.TOP or Gravity.START
+                      x = 500
+                      y = 500
+                  }
+
+                  targetView = LayoutInflater.from(this).inflate(R.layout.floating_target, null)
+                  var initX = 0
+                  var initY = 0
+                  var touchX = 0f
+                  var touchY = 0f
+
+                  targetView.setOnTouchListener { _, event ->
+                      when (event.action) {
+                          MotionEvent.ACTION_DOWN -> {
+                              initX = targetParams.x
+                              initY = targetParams.y
+                              touchX = event.rawX
+                              touchY = event.rawY
+                              true
+                          }
+                          MotionEvent.ACTION_MOVE -> {
+                              targetParams.x = initX + (event.rawX - touchX).toInt()
+                              targetParams.y = initY + (event.rawY - touchY).toInt()
+                              targetX = targetParams.x + 40f
+                              targetY = targetParams.y + 40f
+                              wm.updateViewLayout(targetView, targetParams)
+                              true
+                          }
+                          else -> false
+                      }
+                  }
+                  wm.addView(targetView, targetParams)
+
+                  val controlParams = WindowManager.LayoutParams(
+                      WindowManager.LayoutParams.WRAP_CONTENT,
+                      WindowManager.LayoutParams.WRAP_CONTENT,
+                      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                          WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+                      else
+                          WindowManager.LayoutParams.TYPE_PHONE,
+                      WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+                      PixelFormat.TRANSLUCENT
+                  ).apply {
+                      gravity = Gravity.TOP or Gravity.START
+                      x = 100
+                      y = 100
+                  }
+
+                  controlView = LayoutInflater.from(this).inflate(R.layout.floating_control, null)
+                  val etInterval = controlView.findViewById<EditText>(R.id.etInterval)
+                  val etCount = controlView.findViewById<EditText>(R.id.etCount)
+                  val btnStart = controlView.findViewById<Button>(R.id.btnStart)
+                  val btnStop = controlView.findViewById<Button>(R.id.btnStop)
+                  val btnClose = controlView.findViewById<Button>(R.id.btnClose)
+
+                  btnStart.setOnClickListener {
+                      if (AutoClickService.instance == null) {
+                          Toast.makeText(this, "请先开启辅助功能权限", Toast.LENGTH_SHORT).show()
+                          return@setOnClickListener
+                      }
+                      AutoClickService.targetX = targetX
+                      AutoClickService.targetY = targetY
+                      AutoClickService.intervalMs = etInterval.text.toString().toLongOrNull() ?: 500
+                      AutoClickService.clickCount = etCount.text.toString().toIntOrNull() ?: 0
+                      AutoClickService.instance?.startClicking()
+                      Toast.makeText(this, "开始连点", Toast.LENGTH_SHORT).show()
+                  }
+
+                  btnStop.setOnClickListener {
+                      AutoClickService.instance?.stopClicking()
+                      Toast.makeText(this, "已停止", Toast.LENGTH_SHORT).show()
+                  }
+
+                  btnClose.setOnClickListener {
+                      stopSelf()
+                  }
+
+                  wm.addView(controlView, controlParams)
+              }
+
+              override fun onDestroy() {
+                  super.onDestroy()
+                  if (::targetView.isInitialized) wm.removeView(targetView)
+                  if (::controlView.isInitialized) wm.removeView(controlView)
+              }
+          }
+          EOF
+
+      - name: Create Layout Files
+        run: |
+          cat > app/src/main/res/layout/activity_main.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <LinearLayout
+              xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:orientation="vertical"
+              android:gravity="center"
+              android:padding="24dp"
+              android:background="#F5F5F5">
+              <TextView
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:text="🖱️ 自动连点器"
+                  android:textSize="28sp"
+                  android:textStyle="bold"
+                  android:textColor="#333"
+                  android:layout_marginBottom="32dp" />
+              <Button
+                  android:id="@+id/btnAccessibility"
+                  android:layout_width="match_parent"
+                  android:layout_height="56dp"
+                  android:text="1️⃣ 开启辅助功能权限"
+                  android:textSize="16sp"
+                  android:layout_marginBottom="16dp" />
+              <Button
+                  android:id="@+id/btnFloat"
+                  android:layout_width="match_parent"
+                  android:layout_height="56dp"
+                  android:text="2️⃣ 启动悬浮窗"
+                  android:textSize="16sp"
+                  android:layout_marginBottom="16dp" />
+              <Button
+                  android:id="@+id/btnStop"
+                  android:layout_width="match_parent"
+                  android:layout_height="56dp"
+                  android:text="⏹ 停止连点"
+                  android:textSize="16sp"
+                  android:backgroundTint="#EF4444" />
+              <TextView
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:text="使用说明：\n1. 先开启辅助功能权限\n2. 启动悬浮窗，拖动准星到目标位置\n3. 设置间隔和次数，点击开始"
+                  android:textSize="13sp"
+                  android:textColor="#666"
+                  android:layout_marginTop="24dp"
+                  android:lineSpacingMultiplier="1.3" />
+          </LinearLayout>
+          EOF
+
+          cat > app/src/main/res/layout/floating_target.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <FrameLayout
+              xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="60dp"
+              android:layout_height="60dp">
+              <ImageView
+                  android:id="@+id/ivTarget"
+                  android:layout_width="40dp"
+                  android:layout_height="40dp"
+                  android:layout_gravity="center"
+                  android:background="@drawable/circle_target" />
+          </FrameLayout>
+          EOF
+
+          cat > app/src/main/res/layout/floating_control.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <LinearLayout
+              xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="200dp"
+              android:layout_height="wrap_content"
+              android:orientation="vertical"
+              android:background="#FFFFFF"
+              android:padding="16dp"
+              android:elevation="8dp">
+              <TextView
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:text="连点控制"
+                  android:textSize="16sp"
+                  android:textStyle="bold"
+                  android:layout_marginBottom="12dp" />
+              <EditText
+                  android:id="@+id/etInterval"
+                  android:layout_width="match_parent"
+                  android:layout_height="wrap_content"
+                  android:hint="间隔(ms)"
+                  android:inputType="number"
+                  android:text="500"
+                  android:layout_marginBottom="8dp" />
+              <EditText
+                  android:id="@+id/etCount"
+                  android:layout_width="match_parent"
+                  android:layout_height="wrap_content"
+                  android:hint="次数(0=无限)"
+                  android:inputType="number"
+                  android:text="0"
+                  android:layout_marginBottom="12dp" />
+              <Button
+                  android:id="@+id/btnStart"
+                  android:layout_width="match_parent"
+                  android:layout_height="40dp"
+                  android:text="▶ 开始"
+                  android:textSize="12sp"
+                  android:layout_marginBottom="6dp" />
+              <Button
+                  android:id="@+id/btnStop"
+                  android:layout_width="match_parent"
+                  android:layout_height="40dp"
+                  android:text="⏹ 停止"
+                  android:textSize="12sp"
+                  android:layout_marginBottom="6dp" />
+              <Button
+                  android:id="@+id/btnClose"
+                  android:layout_width="match_parent"
+                  android:layout_height="40dp"
+                  android:text="❌ 关闭"
+                  android:textSize="12sp"
+                  android:backgroundTint="#666" />
+          </LinearLayout>
+          EOF
+
+      - name: Create Resource Files
+        run: |
+          cat > app/src/main/res/drawable/circle_target.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <shape xmlns:android="http://schemas.android.com/apk/res/android"
+              android:shape="oval">
+              <solid android:color="#00FF00" />
+              <stroke android:width="3dp" android:color="#FF0000" />
+              <size android:width="40dp" android:height="40dp" />
+          </shape>
+          EOF
+
+          cat > app/src/main/res/values/strings.xml << 'EOF'
+          <resources>
+              <string name="app_name">自动连点器</string>
+              <string name="service_desc">自动连点器辅助功能，用于模拟屏幕点击</string>
+          </resources>
+          EOF
+
+          cat > app/src/main/res/values/colors.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <color name="purple_200">#FFBB86FC</color>
+              <color name="purple_500">#FF6200EE</color>
+              <color name="purple_700">#FF3700B3</color>
+              <color name="teal_200">#FF03DAC5</color>
+              <color name="teal_700">#FF018786</color>
+              <color name="black">#FF000000</color>
+              <color name="white">#FFFFFFFF</color>
+              <color name="start_window_background">#FFFFFF</color>
+          </resources>
+          EOF
+
+          cat > app/src/main/res/values/themes.xml << 'EOF'
+          <resources>
+              <style name="Theme.AutoClicker" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+                  <item name="colorPrimary">@color/purple_500</item>
+                  <item name="colorPrimaryVariant">@color/purple_700</item>
+                  <item name="colorOnPrimary">@color/white</item>
+                  <item name="colorSecondary">@color/teal_200</item>
+              </style>
+          </resources>
+          EOF
+
+          cat > app/src/main/res/xml/accessibility_service_config.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <accessibility-service
+              xmlns:android="http://schemas.android.com/apk/res/android"
+              android:description="@string/service_desc"
+              android:accessibilityEventTypes="typeAllMask"
+              android:accessibilityFlags="flagDefault|flagIncludeNotImportantViews"
+              android:canRetrieveWindowContent="true"
+              android:canPerformGestures="true"
+              android:settingsActivity="com.example.autoclicker.MainActivity" />
+          EOF
+
+      - name: Build with Gradle
+        run: |
+          wget -q https://services.gradle.org/distributions/gradle-8.2-bin.zip
+          unzip -q gradle-8.2-bin.zip
+          export PATH=$PATH:$PWD/gradle-8.2/bin
+          gradle assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: AutoClicker-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
