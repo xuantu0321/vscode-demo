@@ -12,11 +12,13 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+      # 修复：直接在命令行安装 SDK 环境并强制同意协议
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Accept Android Licenses
-        run: yes | sdkmanager --licenses || true
+        run: |
+          echo "y" | sudo /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses
+          echo "sdk.dir=/usr/local/lib/android/sdk" > local.properties
+          export PATH=$PATH:/usr/local/lib/android/sdk/cmdline-tools/latest/bin
+          sdkmanager "platforms;android-34" "build-tools;34.0.0"
 
       - name: Create Project Structure
         run: |
@@ -115,9 +117,6 @@ jobs:
           cat > app/proguard-rules.pro << 'EOF'
           # ProGuard rules
           EOF
-
-      - name: Create local.properties
-        run: echo "sdk.dir=$ANDROID_HOME" > local.properties
 
       - name: Create AndroidManifest
         run: |
@@ -254,7 +253,6 @@ jobs:
               }
 
               private fun performClick(x: Float, y: Float) {
-                  // 修复：加入 1px 位移，确保识别为点击
                   val path = Path().apply { 
                       moveTo(x, y) 
                       lineTo(x + 1f, y)
