@@ -15,6 +15,9 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Accept Android Licenses
+        run: yes | sdkmanager --licenses || true
+
       - name: Create Project Structure
         run: |
           mkdir -p app/src/main/java/com/example/autoclicker
@@ -120,8 +123,7 @@ jobs:
         run: |
           cat > app/src/main/AndroidManifest.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-              package="com.example.autoclicker">
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
               <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
               <application
@@ -252,7 +254,11 @@ jobs:
               }
 
               private fun performClick(x: Float, y: Float) {
-                  val path = Path().apply { moveTo(x, y) }
+                  // 修复：加入 1px 位移，确保识别为点击
+                  val path = Path().apply { 
+                      moveTo(x, y) 
+                      lineTo(x + 1f, y)
+                  }
                   val builder = GestureDescription.Builder()
                       .addStroke(GestureDescription.StrokeDescription(path, 0, 50))
                   dispatchGesture(builder.build(), null, null)
