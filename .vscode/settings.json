@@ -1,0 +1,10 @@
+{
+  "files.associations": {
+    "*.wxml": "html",
+    "*.wxss": "css"
+  },
+
+  "[wxml]": {
+    "editor.defaultFormatter": null
+  }
+}
