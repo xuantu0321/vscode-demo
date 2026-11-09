@@ -1,7 +1,17 @@
 const http = require('http');
+const crypto = require('crypto');
 const { WebSocketServer } = require('ws');
 
 const PORT = Number(process.env.PORT || 3000);
+const WX_APPID = process.env.WX_APPID || '';
+const WX_SECRET = process.env.WX_SECRET || '';
+// 未配置 AppSecret 时，只有非生产环境或显式开启才信任云托管身份头，避免公网伪造。
+const ALLOW_HEADER_AUTH = process.env.ALLOW_HEADER_AUTH === '1' || process.env.NODE_ENV !== 'production';
+const TOKEN_SECRET = process.env.TOKEN_SECRET || crypto.randomBytes(32).toString('hex');
+const TOKEN_TTL = 7 * 24 * 60 * 60 * 1000;
+if (!process.env.TOKEN_SECRET) {
+  console.warn('[auth] 未设置 TOKEN_SECRET，服务重启后已签发的登录 token 会失效');
+}
 const WS_OPEN = 1;
 const HEARTBEAT_INTERVAL = 30 * 1000; // 清理与心跳检查间隔
 const CLIENT_TIMEOUT = 75 * 1000; // 超过该时间没有收到任何消息则判定为断线
@@ -19,13 +29,137 @@ const send = (ws, data) => { if (isOnline(ws)) ws.send(JSON.stringify(data)); };
 const broadcast = (room, data) => room.players.forEach(p => send(p.ws, data));
 const newBoard = () => Array.from({ length: 15 }, () => Array(15).fill(0));
 
-const server = http.createServer((req, res) => {
-  if (req.url === '/health') {
-    res.writeHead(200, { 'content-type': 'application/json' });
-    return res.end(JSON.stringify({ ok: true, rooms: rooms.size, waiting: waiting.length, clients: clients.size }));
+function jsonResponse(res, statusCode, payload) {
+  if (res.writableEnded) return;
+  res.writeHead(statusCode, {
+    'content-type': 'application/json; charset=utf-8',
+    'cache-control': 'no-store'
+  });
+  res.end(JSON.stringify(payload));
+}
+
+function readJsonBody(req, limit = 64 * 1024) {
+  return new Promise((resolve, reject) => {
+    let size = 0;
+    let tooLarge = false;
+    const chunks = [];
+    req.on('data', chunk => {
+      size += chunk.length;
+      if (size > limit) { tooLarge = true; return; }
+      chunks.push(chunk);
+    });
+    req.on('end', () => {
+      if (tooLarge) {
+        const error = new Error('请求体过大');
+        error.statusCode = 413;
+        return reject(error);
+      }
+      if (!chunks.length) return resolve({});
+      try {
+        const parsed = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+        resolve(parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {});
+      } catch (e) {
+        const error = new Error('请求体不是合法 JSON');
+        error.statusCode = 400;
+        reject(error);
+      }
+    });
+    req.on('error', reject);
+  });
+}
+
+function signToken(playerId) {
+  const payload = Buffer.from(JSON.stringify({
+    sub: playerId,
+    iat: Date.now(),
+    exp: Date.now() + TOKEN_TTL
+  })).toString('base64url');
+  const signature = crypto.createHmac('sha256', TOKEN_SECRET).update(payload).digest('base64url');
+  return `${payload}.${signature}`;
+}
+
+async function code2Session(code) {
+  if (typeof fetch !== 'function') throw new Error('当前 Node 版本不支持 fetch，请使用 Node 18+');
+  const query = new URLSearchParams({
+    appid: WX_APPID,
+    secret: WX_SECRET,
+    js_code: code,
+    grant_type: 'authorization_code'
+  });
+  const signal = typeof AbortSignal !== 'undefined' && AbortSignal.timeout
+    ? AbortSignal.timeout(8000)
+    : undefined;
+  const response = await fetch(`https://api.weixin.qq.com/sns/jscode2session?${query.toString()}`, { signal });
+  const data = await response.json();
+  if (!response.ok || data.errcode || !data.openid) {
+    const error = new Error(`微信登录失败：${data.errmsg || `HTTP ${response.status}`}`);
+    error.statusCode = 401;
+    throw error;
   }
-  res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' });
-  res.end('Gomoku WebSocket server is running');
+  return data.openid;
+}
+
+async function handleWechatLogin(req, res) {
+  const body = await readJsonBody(req);
+  const code = typeof body.code === 'string' ? body.code.trim() : '';
+  const headerOpenId = String(req.headers['x-wx-openid'] || '').trim();
+  let openId = '';
+
+  if (WX_APPID && WX_SECRET) {
+    // 配置了 AppSecret 时只认 code 换取的 openid，避免客户端伪造身份头。
+    if (!code) return jsonResponse(res, 400, { message: '缺少微信登录凭证 code' });
+    openId = await code2Session(code);
+  } else if (headerOpenId && ALLOW_HEADER_AUTH) {
+    // 未配置 AppSecret 时使用云托管 callContainer 注入的身份头，仅适合联调。
+    openId = headerOpenId;
+  } else {
+    return jsonResponse(res, 500, { message: '服务端未配置 WX_APPID / WX_SECRET' });
+  }
+
+  if (!openId) return jsonResponse(res, 401, { message: '微信身份校验失败' });
+
+  const playerId = 'wx_' + crypto.createHash('sha256').update(openId).digest('hex').slice(0, 20);
+  const token = signToken(playerId);
+  return jsonResponse(res, 200, {
+    token,
+    user: {
+      playerId,
+      nickName: String(body.nickName || '微信用户').slice(0, 20),
+      avatarUrl: ''
+    }
+  });
+}
+
+const server = http.createServer(async (req, res) => {
+  const pathname = (req.url || '').split('?')[0];
+
+  if (pathname === '/health') {
+    return jsonResponse(res, 200, {
+      ok: true,
+      rooms: rooms.size,
+      waiting: waiting.length,
+      clients: clients.size,
+      authConfigured: !!(WX_APPID && WX_SECRET)
+    });
+  }
+
+  if (pathname === '/auth/wechat') {
+    if (req.method !== 'POST') return jsonResponse(res, 405, { message: '仅支持 POST' });
+    try {
+      await handleWechatLogin(req, res);
+    } catch (error) {
+      console.error('[auth]', error.message);
+      jsonResponse(res, error.statusCode || 500, { message: error.message || '登录失败' });
+    }
+    return;
+  }
+
+  if (pathname === '/' || pathname === '') {
+    res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' });
+    return res.end('Gomoku WebSocket server is running');
+  }
+
+  return jsonResponse(res, 404, { message: 'Not Found' });
 });
 
 const wss = new WebSocketServer({ server });
@@ -225,4 +359,4 @@ setInterval(() => {
   });
 }, HEARTBEAT_INTERVAL).unref();
 
-server.listen(PORT, () => console.log(`Gomoku server listening on ${PORT}`));
+server.listen(PORT, '0.0.0.0', () => console.log(`Gomoku server listening on ${PORT}`));

@@ -1,4 +1,4 @@
-const { API_BASE_URL, getWsBaseUrl } = require('./config');
+const { API_BASE_URL, CLOUD_ENV, getWsBaseUrl } = require('./config');
 
 App({
   globalData: {
@@ -10,6 +10,13 @@ App({
   },
 
   onLaunch() {
+    if (CLOUD_ENV && wx.cloud && wx.cloud.init) {
+      try {
+        wx.cloud.init({ env: CLOUD_ENV, traceUser: true });
+      } catch (e) {
+        console.warn('[cloud] 初始化失败：', e && e.message ? e.message : e);
+      }
+    }
     const savedUser = wx.getStorageSync('gomoku_user_info');
     const savedLogin = wx.getStorageSync('gomoku_is_logged_in');
     this.globalData.sessionToken = wx.getStorageSync('gomoku_session_token') || '';

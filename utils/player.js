@@ -11,13 +11,15 @@ function getPlayer() {
     wx.setStorageSync('gomoku_guest_player', player);
   }
 
-  const user = getApp().globalData.userInfo || {};
+  const app = getApp();
+  const user = app.globalData.userInfo || {};
+  const loggedIn = !!app.globalData.isLoggedIn;
 
-  // 输出实际保存的玩家 ID，方便检查重启前后是否一致
-  console.log('[玩家身份] 当前 playerId:', player.playerId);
+  // 登录用户使用服务端下发的 playerId（由微信 openid 派生），游客使用本机 ID。
+  const playerId = (loggedIn && user.playerId) ? user.playerId : player.playerId;
 
   return {
-    playerId: player.playerId,
+    playerId,
     nickName: user.nickName || player.nickName || '棋友',
     avatarUrl: user.avatarUrl || ''
   };

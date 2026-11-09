@@ -1,10 +1,11 @@
-// 服务端冒烟测试：覆盖建房/加入/落子校验/心跳/重连/弃房回收/匹配。
+// 服务端冒烟测试：覆盖健康检查/登录接口/建房/加入/落子校验/心跳/重连/弃房回收/匹配。
 // 用法：先启动 server（默认 3000 端口），再在 server 目录执行 `npm test`。
 // 也可用 SMOKE_URL 指向其他地址，例如：SMOKE_URL=ws://127.0.0.1:3100 npm test
 const assert = require('assert');
 const WebSocket = require('ws');
 
 const URL = process.env.SMOKE_URL || 'ws://127.0.0.1:3000';
+const HTTP_URL = (process.env.SMOKE_HTTP_URL || URL.replace(/^ws/, 'http')).replace(/\/$/, '');
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 class Client {
@@ -68,6 +69,26 @@ class Client {
 }
 
 async function run() {
+  // 0. HTTP 健康检查与登录接口
+  const healthResponse = await fetch(HTTP_URL + '/health');
+  assert.strictEqual(healthResponse.status, 200, '健康检查应返回 200');
+  const health = await healthResponse.json();
+  assert.strictEqual(health.ok, true);
+  if (!health.authConfigured) {
+    const loginResponse = await fetch(HTTP_URL + '/auth/wechat', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-wx-openid': 'smoke-openid' },
+      body: JSON.stringify({})
+    });
+    assert.strictEqual(loginResponse.status, 200, '身份头登录应返回 200');
+    const login = await loginResponse.json();
+    assert.ok(login.token && login.token.includes('.'), '应返回签名 token');
+    assert.ok(login.user && login.user.playerId.startsWith('wx_'), '应返回由 openid 派生的 playerId');
+    console.log('✓ 健康检查与登录接口');
+  } else {
+    console.log('✓ 健康检查（已配置 AppSecret，跳过身份头登录测试）');
+  }
+
   // 1. 建房与加入
   const alice = await new Client('alice').connect();
   alice.send({ type: 'create_room', player: { playerId: 'alice', nickName: '甲' } });

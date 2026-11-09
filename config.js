@@ -1,11 +1,13 @@
 // 联机服务地址配置。
-// 开发版/体验版使用局域网或测试服务器地址；正式版必须使用 wss:// 正式域名，
-// 并在微信公众平台「开发管理-开发设置-服务器域名」中把该域名加入 socket 合法域名。
-// 开发版/体验版默认连本机服务，微信开发者工具可直接使用；
-// 真机联调时改成电脑的局域网 IP，例如 ws://192.168.1.10:3000。
+// 云托管服务：express-bf9s；环境 ID：prod-d8ghg6ygc0ef05aca。
+// 开发版默认连本机服务；体验版/正式版连云托管公网域名。
 const DEV_WS_BASE_URL = 'ws://192.168.42.227:3000';
-const PROD_WS_BASE_URL = ''; // 例：'wss://gomoku.example.com'
-const API_BASE_URL = ''; // 例：'https://gomoku.example.com'，用于微信登录换取 Token
+const PROD_WS_BASE_URL = 'wss://express-bf9s-344454-6-1526871378.sh.run.tcloudbase.com';
+const API_BASE_URL = ''; // 直接使用 wx.request 时填写 HTTPS 域名；使用 callContainer 时留空
+
+// 微信云托管配置：登录时通过 wx.cloud.callContainer 调 /auth/wechat。
+const CLOUD_ENV = 'prod-d8ghg6ygc0ef05aca';
+const CLOUD_SERVICE = 'express-bf9s';
 
 function getEnvVersion() {
   try {
@@ -17,7 +19,7 @@ function getEnvVersion() {
 
 function getWsBaseUrl() {
   const env = getEnvVersion();
-  if (env === 'release') return PROD_WS_BASE_URL;
+  if (env === 'release' || env === 'trial') return PROD_WS_BASE_URL;
   return DEV_WS_BASE_URL;
 }
 
@@ -25,6 +27,8 @@ module.exports = {
   DEV_WS_BASE_URL,
   PROD_WS_BASE_URL,
   API_BASE_URL,
+  CLOUD_ENV,
+  CLOUD_SERVICE,
   getEnvVersion,
   getWsBaseUrl
 };
