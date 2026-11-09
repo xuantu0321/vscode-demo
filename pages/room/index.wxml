@@ -1,0 +1,6 @@
+<view class="page">
+  <view class="hero"><view class="title">好友房间</view><view class="sub">创建专属房间，邀请好友在线对弈</view></view>
+  <view class="card"><view class="card-title">创建房间</view><view class="desc">创建后获得 6 位房间号，把号码分享给好友即可开始。</view><button class="primary" bindtap="createRoom" disabled="{{!connected}}">创建房间</button></view>
+  <view class="card"><view class="card-title">加入房间</view><input class="code" type="number" maxlength="6" placeholder="输入 6 位房间号" value="{{roomCode}}" bindinput="inputCode"/><button class="secondary" bindtap="joinRoom" disabled="{{!connected}}">加入对局</button></view>
+  <view wx:if="{{creating===false && roomCode}}" class="card"><view class="card-title">你的房间号：{{roomCode}}</view><button class="secondary" bindtap="copyRoomCode">复制房间号</button></view><view class="status">{{status}}</view>
+</view>

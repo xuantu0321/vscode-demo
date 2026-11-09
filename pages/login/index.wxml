@@ -1,0 +1,8 @@
+<view class="page">
+  <view class="brand-mark">♟</view>
+  <view class="title">欢迎来到五子棋</view>
+  <view class="subtitle">登录后保存你的棋手资料，开启对弈之旅</view>
+  <button class="wechat-btn" loading="{{loading}}" disabled="{{loading}}" bindtap="onWechatLogin">微信快捷登录</button>
+  <button class="guest-btn" bindtap="onGuest">先以游客身份体验</button>
+  <view class="hint">游客资料仅保存在当前设备。正式微信账号认证需要配置服务端。</view>
+</view>

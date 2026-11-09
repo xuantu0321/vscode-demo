@@ -1,0 +1,1 @@
+<view class="page"><view class="orb">⚫</view><view class="title">寻找棋友</view><view class="sub">系统将为你匹配一位在线棋手</view><view class="status">{{status}}</view><button wx:if="{{!searching}}" class="primary" bindtap="startMatch">开始匹配</button><button wx:else class="cancel" bindtap="cancelMatch">取消匹配</button></view>

@@ -1,0 +1,8 @@
+page { min-height: 100%; background: #F5F7FB; color: #202B3C; }
+.page { min-height: 100vh; box-sizing: border-box; padding: 150rpx 48rpx 60rpx; display: flex; flex-direction: column; align-items: center; }
+.brand-mark { width: 132rpx; height: 132rpx; border-radius: 38rpx; background: #E8F1FF; color: #2878E8; display:flex; align-items:center; justify-content:center; font-size:68rpx; }
+.title { margin-top: 42rpx; font-size: 42rpx; font-weight: 700; }
+.subtitle { margin-top: 18rpx; color: #8993A4; font-size: 26rpx; text-align:center; }
+.wechat-btn { width:100%; margin-top:100rpx; background:#2878E8; color:#fff; border-radius:18rpx; font-size:30rpx; }
+.guest-btn { width:100%; margin-top:24rpx; background:#fff; color:#34445B; border-radius:18rpx; font-size:30rpx; }
+.hint { margin-top:38rpx; color:#9AA3B2; font-size:22rpx; line-height:1.7; text-align:center; }

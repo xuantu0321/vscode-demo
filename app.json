@@ -1,0 +1,20 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/login/index",
+    "pages/profile/index",
+    "pages/single/index",
+    "pages/room/index",
+    "pages/matching/index",
+    "pages/game/index"
+  ],
+  "window": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "五子棋",
+    "navigationBarBackgroundColor": "#F5F7FB",
+    "backgroundColor": "#F5F7FB",
+    "backgroundTextStyle": "light"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

@@ -1,0 +1,57 @@
+<view class="page">
+  <view class="top">
+    <view class="room">房间号：{{roomId}}</view>
+    <view class="status">{{status}}</view>
+  </view>
+
+  <view class="board-area">
+    <view class="board-shell">
+      <view class="coord-top">
+        <text wx:for="{{columns}}" wx:key="*this" class="coord-col">{{item}}</text>
+      </view>
+
+      <view class="coord-left">
+        <text wx:for="{{rows}}" wx:key="*this" class="coord-row">{{item}}</text>
+      </view>
+
+      <view class="board">
+        <view class="grid-lines"></view>
+
+        <!-- 与原单机棋盘一致：四角星位加中心星位 -->
+        <view class="star star-1"></view>
+        <view class="star star-2"></view>
+        <view class="star star-3"></view>
+        <view class="star star-4"></view>
+        <view class="star star-5"></view>
+
+        <!-- 每个可点击区域的中心就是一个网格交叉点 -->
+        <view
+          wx:for="{{points}}"
+          wx:key="index"
+          class="board-point"
+          style="left: {{item.left}}; top: {{item.top}};"
+          data-x="{{item.x}}"
+          data-y="{{item.y}}"
+          bindtap="tapBoard"
+        >
+          <view wx:if="{{item.stone === 1}}" class="stone black"></view>
+          <view wx:elif="{{item.stone === 2}}" class="stone white"></view>
+          <view wx:if="{{item.isLast}}" class="last-move"></view>
+        </view>
+      </view>
+
+      <view class="coord-bottom">
+        <text wx:for="{{columns}}" wx:key="*this" class="coord-col">{{item}}</text>
+      </view>
+      <view class="coord-right">
+        <text wx:for="{{rows}}" wx:key="*this" class="coord-row">{{item}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="bottom">
+    <view>你执{{myColor === 1 ? '黑棋' : '白棋'}} · {{gameOver ? '对局已结束' : (currentPlayer === myColor ? '你的回合' : '对手回合')}}</view>
+    <view wx:if="{{lastMoveLabel}}" class="last-label">最后一手：{{lastMoveLabel}}</view>
+  </view>
+  <view wx:if="{{gameOver}}" class="result">{{status}}</view>
+</view>

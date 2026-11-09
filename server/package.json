@@ -1,0 +1,10 @@
+{
+  "name": "gomoku-realtime-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "五子棋好友房间与随机匹配 WebSocket 服务端",
+  "main": "server.js",
+  "scripts": { "start": "node server.js", "test": "node smoke-test.js" },
+  "engines": { "node": ">=18" },
+  "dependencies": { "ws": "^8.18.0" }
+}

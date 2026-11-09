@@ -1,0 +1,17 @@
+<view class="page">
+  <view class="profile-card">
+    <button class="avatar-button" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar"><image wx:if="{{userInfo.avatarUrl}}" class="avatar" src="{{userInfo.avatarUrl}}" mode="aspectFill"/><view wx:else class="avatar placeholder">{{avatarInitial}}</view></button>
+    <view class="account-state">{{isLoggedIn ? '微信账号已登录' : '游客模式'}}</view>
+    <view class="player-id">棋手 ID：{{userInfo.playerId || '保存资料后生成'}}</view>
+    <button wx:if="{{!isLoggedIn}}" class="login-link" bindtap="goLogin">微信登录 / 注册</button>
+  </view>
+  <view class="form-card">
+    <view class="field-label">昵称</view>
+    <input class="field-input" type="nickname" value="{{nickName}}" placeholder="请输入昵称" maxlength="20" bindinput="onNickNameInput" />
+    <view class="field-label signature-label">个性签名</view>
+    <textarea class="signature-input" value="{{signature}}" placeholder="写一句你的棋手宣言吧" maxlength="60" bindinput="onSignatureInput" />
+    <button class="save-btn" bindtap="saveProfile">保存资料</button>
+  </view>
+  <view class="logout" wx:if="{{userInfo.playerId}}" bindtap="logout">退出当前账号</view>
+  <view class="footnote">当前版本的游客资料保存在本机，清除小程序数据后可能丢失。</view>
+</view>

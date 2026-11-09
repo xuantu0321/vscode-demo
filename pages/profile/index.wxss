@@ -1,0 +1,20 @@
+page { min-height:100%; background:#F5F7FB; color:#202B3C; }
+.page { padding:30rpx 30rpx 70rpx; }
+.profile-card,.form-card { background:#fff; border-radius:24rpx; padding:36rpx; }
+.profile-card { display:flex; flex-direction:column; align-items:center; }
+.avatar-button { width:136rpx; height:136rpx; padding:0; margin:0; border-radius:50%; background:transparent; line-height:136rpx; }
+.avatar-button::after { border:0; }
+.avatar { width:136rpx; height:136rpx; border-radius:50%; }
+.placeholder { display:flex; align-items:center; justify-content:center; background:#E8F1FF; color:#2878E8; font-size:52rpx; }
+.account-state { margin-top:22rpx; font-size:32rpx; font-weight:700; }
+.player-id { margin-top:12rpx; color:#929CAB; font-size:23rpx; }
+.login-link { margin-top:22rpx; color:#2878E8; background:#EEF5FF; font-size:25rpx; border-radius:30rpx; }
+.login-link::after { border:0; }
+.form-card { margin-top:24rpx; }
+.field-label { color:#536176; font-size:25rpx; font-weight:600; margin-bottom:14rpx; }
+.field-input { height:86rpx; padding:0 22rpx; border-radius:14rpx; background:#F5F7FB; font-size:28rpx; }
+.signature-label { margin-top:30rpx; }
+.signature-input { width:auto; height:150rpx; padding:20rpx 22rpx; border-radius:14rpx; background:#F5F7FB; font-size:27rpx; }
+.save-btn { margin-top:34rpx; background:#2878E8; color:#fff; border-radius:16rpx; font-size:29rpx; }
+.logout { margin-top:26rpx; padding:28rpx; text-align:center; color:#E45B5B; background:#fff; border-radius:18rpx; font-size:27rpx; }
+.footnote { margin:28rpx 14rpx 0; color:#9AA3B2; font-size:22rpx; line-height:1.6; text-align:center; }

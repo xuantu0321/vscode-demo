@@ -1,0 +1,69 @@
+<view class="page">
+  <view class="topbar">
+    <view>
+      <view class="brand">GOMOKU</view>
+      <view class="brand-sub">五子棋 · 棋逢对手</view>
+    </view>
+    <view class="avatar" bindtap="goProfile">
+      <image wx:if="{{avatarUrl}}" class="avatar-image" src="{{avatarUrl}}" mode="aspectFill"/><text wx:else class="avatar-text">{{avatarInitial}}</text>
+    </view>
+  </view>
+
+  <view class="hero">
+    <view class="hero-tag">WELCOME BACK</view>
+    <view class="hero-title">下一步，<text class="blue">由你决定。</text></view>
+    <view class="hero-desc">无论是独自复盘，还是与好友对弈，享受每一步思考。</view>
+    <view class="hero-board">
+      <view class="mini-grid">
+        <view class="mini-stone black s1"></view>
+        <view class="mini-stone white s2"></view>
+        <view class="mini-stone black s3"></view>
+        <view class="mini-stone white s4"></view>
+        <view class="mini-stone black s5"></view>
+      </view>
+      <view class="hero-board-label">THINK · PLAY · WIN</view>
+    </view>
+  </view>
+
+  <view class="section-head">
+    <view class="section-title">开始游戏</view>
+    <view class="section-sub">选择一种方式开启对局</view>
+  </view>
+
+  <view class="main-action" bindtap="goMatch">
+    <view class="action-icon primary-icon">⚔</view>
+    <view class="action-copy">
+      <view class="action-title">快速匹配</view>
+      <view class="action-desc">与全网棋友实时对弈</view>
+    </view>
+    <view class="arrow">›</view>
+  </view>
+
+  <view class="action-row">
+    <view class="small-action" bindtap="goRoom">
+      <view class="action-icon room-icon">♟</view>
+      <view class="action-title">好友房间</view>
+      <view class="action-desc">邀请好友一起下棋</view>
+      <view class="small-arrow">›</view>
+    </view>
+    <view class="small-action" bindtap="goSingle">
+      <view class="action-icon single-icon">▦</view>
+      <view class="action-title">单机摆谱</view>
+      <view class="action-desc">自由落子与棋谱复盘</view>
+      <view class="small-arrow">›</view>
+    </view>
+  </view>
+
+  <view class="bottom-note">每一局，都是新的开始。</view>
+  <view class="tabbar">
+    <view class="tab active" bindtap="goHome">
+      <text class="tab-symbol">⌂</text><text>首页</text>
+    </view>
+    <view class="tab" bindtap="goMatch">
+      <text class="tab-symbol">◉</text><text>对战</text>
+    </view>
+    <view class="tab" bindtap="goProfile">
+      <text class="tab-symbol">◎</text><text>我的</text>
+    </view>
+  </view>
+</view>
